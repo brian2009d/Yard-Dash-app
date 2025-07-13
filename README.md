@@ -1,5 +1,5 @@
 # Yardash 🌱
-
+My on-demand yard work application
 **Quality Yard Work, On Demand.**
 
 Yardash is a modern, responsive web application designed to connect homeowners with local, skilled workers ("Dashers") for all their outdoor service needs. From lawn mowing and gardening to landscaping and gutter cleaning, Yardash provides a seamless platform for posting jobs, finding work, and managing payments.
