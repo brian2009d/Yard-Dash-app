@@ -1,11 +1,9 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { User } from '@/api/entities';
+import { User } from '@/entities/User';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -15,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Menu, Leaf, Home, Search, PlusCircle, LayoutDashboard, LogOut, UserCircle, MapPin, Star, ShieldCheck, Image as ImageIcon } from 'lucide-react';
+import { Menu, Leaf, Home, Search, PlusCircle, LayoutDashboard, LogOut, UserCircle, MapPin, Star, ShieldCheck, Image as ImageIcon, Download } from 'lucide-react';
 import SplashScreen from '@/components/ui/SplashScreen';
 
 const Logo = () => (
@@ -54,11 +52,69 @@ const NavLinks = ({ inSheet, onLinkClick }) => {
   );
 };
 
+// Add the InstallButton component
+const InstallButton = () => {
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    // Check if app is already installed
+    const checkIfInstalled = () => {
+      if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+        setIsInstalled(true);
+      }
+    };
+    
+    checkIfInstalled();
+
+    // Listen for the install prompt
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstall = () => {
+    if (!installPrompt) return;
+    
+    installPrompt.prompt();
+    installPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        setIsInstalled(true);
+      }
+      setInstallPrompt(null);
+    });
+  };
+
+  // Don't show button if already installed or no install prompt available
+  if (isInstalled || !installPrompt) {
+    return null;
+  }
+
+  return (
+    <Button 
+      onClick={handleInstall}
+      variant="outline"
+      size="sm"
+      className="border-green-600 text-green-600 hover:bg-green-50 hover:text-green-700 flex items-center gap-2"
+    >
+      <Download className="w-4 h-4" />
+      <span className="hidden sm:inline">Install App</span>
+    </Button>
+  );
+};
+
 export default function Layout({ children }) {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isSplashActive, setIsSplashActive] = useState(true);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [showSplash, setShowSplash] = useState(true);
-  const [appReady, setAppReady] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -69,14 +125,15 @@ export default function Layout({ children }) {
         setUser(currentUser);
       } catch (error) {
         setUser(null);
+      } finally {
+        setLoading(false);
       }
     };
     fetchUser();
   }, [location.pathname]);
 
   useEffect(() => {
-    // Dynamically create and inject the manifest and theme color for PWA readiness.
-    // This avoids creating a static manifest.json file, which is not supported by the file system.
+    // --- PWA Setup ---
     
     // 1. Define the manifest content
     const manifest = {
@@ -84,41 +141,55 @@ export default function Layout({ children }) {
       name: "Yardash: Quality Yard Work, On Demand",
       description: "Yardash connects you with skilled local workers for all your outdoor needs. From mowing to mulching, get it done right.",
       icons: [
-        {
-          "src": "/icon-192x192.png",
-          "type": "image/png",
-          "sizes": "192x192",
-          "purpose": "any maskable"
-        },
-        {
-          "src": "/icon-512x512.png",
-          "type": "image/png",
-          "sizes": "512x512",
-          "purpose": "any maskable"
-        }
+        { src: '/icon-72x72.png', type: 'image/png', sizes: '72x72' },
+        { src: '/icon-96x96.png', type: 'image/png', sizes: '96x96' },
+        { src: '/icon-128x128.png', type: 'image/png', sizes: '128x128' },
+        { src: '/icon-144x144.png', type: 'image/png', sizes: '144x144' },
+        { src: '/icon-152x152.png', type: 'image/png', sizes: '152x152' },
+        { src: '/icon-192x192.png', type: 'image/png', sizes: '192x192', purpose: 'any maskable' },
+        { src: '/icon-384x384.png', type: 'image/png', sizes: '384x384' },
+        { src: '/icon-512x512.png', type: 'image/png', sizes: '512x512', purpose: 'any maskable' }
       ],
-      start_url: ".",
+      start_url: "/",
       display: "standalone",
+      scope: "/",
       theme_color: "#10b981",
       background_color: "#ffffff"
     };
 
-    // 2. Create a blob URL for the manifest
-    const manifestString = JSON.stringify(manifest);
-    const manifestBlob = new Blob([manifestString], { type: 'application/json' });
+    // 2. Create and inject the manifest link
+    const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
     const manifestUrl = URL.createObjectURL(manifestBlob);
-
-    // 3. Inject the manifest link into the head
     const manifestLink = document.createElement('link');
     manifestLink.rel = 'manifest';
     manifestLink.href = manifestUrl;
     document.head.appendChild(manifestLink);
 
-    // 4. Inject the theme color meta tag
+    // 3. Inject the theme color meta tag
     const themeColorMeta = document.createElement('meta');
     themeColorMeta.name = 'theme-color';
-    themeColorMeta.content = '#10b981';
+    themeColorMeta.content = manifest.theme_color;
     document.head.appendChild(themeColorMeta);
+    
+    // 4. Simple service worker registration
+    if ('serviceWorker' in navigator) {
+        const swCode = `
+          self.addEventListener('install', () => self.skipWaiting());
+          self.addEventListener('activate', () => self.clients.claim());
+          self.addEventListener('fetch', (e) => {
+            if (e.request.url.startsWith(self.location.origin)) {
+              e.respondWith(fetch(e.request));
+            }
+          });
+        `;
+        
+        const blob = new Blob([swCode], { type: 'application/javascript' });
+        const swUrl = URL.createObjectURL(blob);
+        
+        navigator.serviceWorker.register(swUrl)
+          .then(() => console.log('Service Worker registered'))
+          .catch(() => console.log('Service Worker registration failed'));
+    }
 
     // 5. Cleanup function
     return () => {
@@ -133,8 +204,7 @@ export default function Layout({ children }) {
   }, []);
 
   const handleSplashComplete = () => {
-    setShowSplash(false);
-    setAppReady(true);
+    setIsSplashActive(false);
   };
 
   const handleLogout = async () => {
@@ -148,7 +218,7 @@ export default function Layout({ children }) {
   }
 
   // Show splash screen on first load
-  if (showSplash) {
+  if (isSplashActive) {
     return <SplashScreen onComplete={handleSplashComplete} />;
   }
 
@@ -160,6 +230,7 @@ export default function Layout({ children }) {
             <Logo />
             <NavLinks />
             <div className="flex items-center gap-4">
+              <InstallButton />
               {user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -256,4 +327,3 @@ export default function Layout({ children }) {
     </div>
   );
 }
-
