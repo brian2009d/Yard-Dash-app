@@ -1,10 +1,11 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowRight, CheckCircle, Leaf, Search, User as UserIcon, Briefcase } from 'lucide-react';
+import PWASetup from '@/components/utils/PWASetup';
+import InstallPWA from '@/components/utils/InstallPWA';
 
 const FeatureCard = ({ icon, title, description }) => (
     <div className="flex flex-col items-center text-center p-6">
@@ -19,6 +20,9 @@ const FeatureCard = ({ icon, title, description }) => (
 export default function HomePage() {
   return (
     <div>
+        <PWASetup />
+        <InstallPWA />
+        
         {/* Hero Section */}
         <section className="relative bg-white pt-16 pb-24 sm:pt-24 sm:pb-32">
             <div className="absolute inset-0 overflow-hidden">
