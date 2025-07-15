@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { User } from './entities/User';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -12,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Menu, Leaf, Home, Search, PlusCircle, LayoutDashboard, LogOut, UserCircle, MapPin, Star, ShieldCheck, Image as ImageIcon, Download } from 'lucide-react';
+import { Menu, Leaf, Home, Search, PlusCircle, LayoutDashboard, LogOut, UserCircle, MapPin, Star, ShieldCheck, Image as ImageIcon } from 'lucide-react';
 import SplashScreen from '@/components/ui/SplashScreen';
 
 const Logo = () => (
@@ -62,10 +63,8 @@ export default function Layout({ children }) {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        // Temporarily comment out User import to test build
-        // const currentUser = await User.me();
-        // setUser(currentUser);
-        setUser(null);
+        const currentUser = await User.me();
+        setUser(currentUser);
       } catch (error) {
         setUser(null);
       } finally {
@@ -80,7 +79,7 @@ export default function Layout({ children }) {
   };
 
   const handleLogout = async () => {
-    // await User.logout();
+    await User.logout();
     navigate(createPageUrl('Home'));
     setUser(null);
   };
@@ -101,7 +100,38 @@ export default function Layout({ children }) {
             <Logo />
             <NavLinks />
             <div className="flex items-center gap-4">
-              <Button onClick={() => alert('Login functionality temporarily disabled for testing')}>Login / Sign Up</Button>
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={user.profile_picture_url || ''} alt={user.full_name} />
+                        <AvatarFallback>{user.full_name?.[0]}</AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                        <Link to={createPageUrl('Dashboard')}>Dashboard</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                        <Link to={createPageUrl('EditProfile')}>Edit Profile</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>Log out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button asChild>
+                  <Link to={createPageUrl('ClientSignup')}>Login / Sign Up</Link>
+                </Button>
+              )}
+              
               <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                 <SheetTrigger asChild className="md:hidden">
                   <Button variant="outline" size="icon">
