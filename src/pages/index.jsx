@@ -1,111 +1,50 @@
-import Layout from "./Layout.jsx";
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Layout from '@/Layout';
+import { createPageUrl } from '@/utils';
 
-import Home from "./Home";
+// Import all page components
+import AboutPage from './About';
+import AdminAnalyticsPage from './AdminAnalytics';
+import ClientSignupPage from './ClientSignup';
+import DashboardPage from './Dashboard';
+import DasherSignupPage from './DasherSignup';
+import EditProfilePage from './EditProfile';
+import FindWorkPage from './FindWork';
+import GenerateIconsPage from './GenerateIcons';
+import HomePage from './Home';
+import MapViewPage from './MapView';
+import PostJobPage from './PostJob';
 
-import FindWork from "./FindWork";
 
-import PostJob from "./PostJob";
-
-import Dashboard from "./Dashboard";
-
-import MapView from "./MapView";
-
-import ClientSignup from "./ClientSignup";
-
-import DasherSignup from "./DasherSignup";
-
-import AdminAnalytics from "./AdminAnalytics";
-
-import About from "./About";
-
-import GenerateIcons from "./GenerateIcons";
-
-import EditProfile from "./EditProfile";
-
-import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
-
-const PAGES = {
-    
-    Home: Home,
-    
-    FindWork: FindWork,
-    
-    PostJob: PostJob,
-    
-    Dashboard: Dashboard,
-    
-    MapView: MapView,
-    
-    ClientSignup: ClientSignup,
-    
-    DasherSignup: DasherSignup,
-    
-    AdminAnalytics: AdminAnalytics,
-    
-    About: About,
-    
-    GenerateIcons: GenerateIcons,
-    
-    EditProfile: EditProfile,
-    
-}
-
-function _getCurrentPage(url) {
-    if (url.endsWith('/')) {
-        url = url.slice(0, -1);
-    }
-    let urlLastPart = url.split('/').pop();
-    if (urlLastPart.includes('?')) {
-        urlLastPart = urlLastPart.split('?')[0];
-    }
-
-    const pageName = Object.keys(PAGES).find(page => page.toLowerCase() === urlLastPart.toLowerCase());
-    return pageName || Object.keys(PAGES)[0];
-}
-
-// Create a wrapper component that uses useLocation inside the Router context
-function PagesContent() {
-    const location = useLocation();
-    const currentPage = _getCurrentPage(location.pathname);
-    
-    return (
-        <Layout currentPageName={currentPage}>
-            <Routes>            
-                
-                    <Route path="/" element={<Home />} />
-                
-                
-                <Route path="/Home" element={<Home />} />
-                
-                <Route path="/FindWork" element={<FindWork />} />
-                
-                <Route path="/PostJob" element={<PostJob />} />
-                
-                <Route path="/Dashboard" element={<Dashboard />} />
-                
-                <Route path="/MapView" element={<MapView />} />
-                
-                <Route path="/ClientSignup" element={<ClientSignup />} />
-                
-                <Route path="/DasherSignup" element={<DasherSignup />} />
-                
-                <Route path="/AdminAnalytics" element={<AdminAnalytics />} />
-                
-                <Route path="/About" element={<About />} />
-                
-                <Route path="/GenerateIcons" element={<GenerateIcons />} />
-                
-                <Route path="/EditProfile" element={<EditProfile />} />
-                
-            </Routes>
-        </Layout>
-    );
-}
+// This array maps the page names (used in createPageUrl) to their components.
+const pages = [
+  { path: 'About', Component: AboutPage },
+  { path: 'AdminAnalytics', Component: AdminAnalyticsPage },
+  { path: 'ClientSignup', Component: ClientSignupPage },
+  { path: 'Dashboard', Component: DashboardPage },
+  { path: 'DasherSignup', Component: DasherSignupPage },
+  { path: 'EditProfile', Component: EditProfilePage },
+  { path: 'FindWork', Component: FindWorkPage },
+  { path: 'GenerateIcons', Component: GenerateIconsPage },
+  { path: 'Home', Component: HomePage },
+  { path: 'MapView', Component: MapViewPage },
+  { path: 'PostJob', Component: PostJobPage },
+];
 
 export default function Pages() {
-    return (
-        <Router>
-            <PagesContent />
-        </Router>
-    );
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout><HomePage /></Layout>} />
+        {pages.map(({ path, Component }) => (
+          <Route
+            key={path}
+            path={createPageUrl(path)}
+            element={<Layout><Component /></Layout>}
+          />
+        ))}
+      </Routes>
+    </BrowserRouter>
+  );
 }
