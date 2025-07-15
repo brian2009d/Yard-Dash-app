@@ -83,17 +83,13 @@ export default function Layout({ children }) {
   const [isInstalled, setIsInstalled] = useState(false);
   
   useEffect(() => {
-    console.log('Layout: Attaching PWA install prompt listener...');
-    
     // Check if app is already installed
     if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
-      console.log('Layout: App is already installed.');
       setIsInstalled(true);
     }
 
     // Listen for the install prompt
     const handleBeforeInstallPrompt = (e) => {
-      console.log('Layout: "beforeinstallprompt" event was fired!');
       e.preventDefault();
       setInstallPrompt(e);
     };
@@ -101,7 +97,6 @@ export default function Layout({ children }) {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     
     return () => {
-      console.log('Layout: Cleaning up PWA install prompt listener.');
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, []);
@@ -182,8 +177,8 @@ export default function Layout({ children }) {
         const swUrl = URL.createObjectURL(blob);
         
         navigator.serviceWorker.register(swUrl)
-          .then(() => console.log('Service Worker registered'))
-          .catch(() => console.log('Service Worker registration failed'));
+          .then(() => {})
+          .catch(() => {});
     }
 
     return () => {
@@ -215,8 +210,6 @@ export default function Layout({ children }) {
     return <SplashScreen onComplete={handleSplashComplete} />;
   }
   
-  console.log('Layout rendering. installPrompt:', installPrompt, 'isInstalled:', isInstalled);
-
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-200">
