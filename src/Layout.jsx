@@ -1,39 +1,321 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Layout from '@/Layout.jsx';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { User } from '@/entities/User';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Menu, Leaf, Home, Search, PlusCircle, LayoutDashboard, LogOut, UserCircle, MapPin, Star, ShieldCheck, Image as ImageIcon, Download } from 'lucide-react';
+import SplashScreen from '@/components/ui/SplashScreen';
 
-// Import all page components
-import AboutPage from './About';
-import AdminAnalyticsPage from './AdminAnalytics';
-import PostJobPage from './PostJob';
-import ClientSignupPage from './ClientSignup';
-import DasherSignupPage from './DasherSignup';
-import EditProfilePage from './EditProfile';
-import GenerateIconsPage from './GenerateIcons';
+const Logo = () => (
+  <Link to={createPageUrl("Home")} className="flex items-center gap-2 text-green-600">
+    <Leaf className="w-7 h-7" />
+    <span className="text-2xl font-bold text-gray-800">Yardash</span>
+  </Link>
+);
 
-const pages = [
-  { path: 'About', Component: AboutPage },
-  { path: 'AdminAnalytics', Component: AdminAnalyticsPage },
-  { path: 'PostJob', Component: PostJobPage },
-  { path: 'ClientSignup', Component: ClientSignupPage },
-  { path: 'DasherSignup', Component: DasherSignupPage },
-  { path: 'EditProfile', Component: EditProfilePage },
-  { path: 'GenerateIcons', Component: GenerateIconsPage },
-];
+const NavLinks = ({ inSheet, onLinkClick }) => {
+  const links = [
+    { name: 'Home', href: createPageUrl('Home'), icon: Home },
+    { name: 'About', href: createPageUrl('About'), icon: UserCircle },
+    { name: 'Map View', href: createPageUrl('MapView'), icon: MapPin },
+    { name: 'Find Work', href: createPageUrl('FindWork'), icon: Search },
+    { name: 'Post a Job', href: createPageUrl('PostJob'), icon: PlusCircle },
+    { name: 'Dashboard', href: createPageUrl('Dashboard'), icon: LayoutDashboard },
+  ];
 
-export default function Pages() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {pages.map(({ path, Component }) => (
-          <Route
-            key={path}
-            path={createPageUrl(path)}
-            element={<Layout><Component /></Layout>}
-          />
-        ))}
-      </Routes>
-    </BrowserRouter>
+    <nav className={`flex items-center gap-4 ${inSheet ? 'flex-col items-start w-full' : 'hidden md:flex'}`}>
+      {links.map((link) => (
+        <Link
+          key={link.name}
+          to={link.href}
+          onClick={onLinkClick}
+          className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            inSheet ? 'w-full' : ''
+          } hover:bg-green-50 hover:text-green-700`}
+        >
+          <link.icon className="w-4 h-4" />
+          {link.name}
+        </Link>
+      ))}
+    </nav>
+  );
+};
+
+const InstallButton = ({ installPrompt, onInstall, isInstalled }) => {
+  if (isInstalled || !installPrompt) {
+    return null;
+  }
+
+  return (
+    <Button 
+      onClick={onInstall}
+      variant="outline"
+      size="sm"
+      className="border-green-600 text-green-600 hover:bg-green-50 hover:text-green-700 flex items-center gap-2"
+    >
+      <Download className="w-4 h-4" />
+      <span className="hidden sm:inline">Install App</span>
+    </Button>
+  );
+};
+
+export default function Layout({ children }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isSplashActive, setIsSplashActive] = useState(true);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // PWA Install Logic
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  
+  useEffect(() => {
+    // Check if app is already installed
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+      setIsInstalled(true);
+    }
+
+    // Listen for the install prompt
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstall = () => {
+    if (!installPrompt) return;
+    
+    installPrompt.prompt();
+    installPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        setIsInstalled(true);
+      }
+      setInstallPrompt(null);
+    });
+  };
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const currentUser = await User.me();
+        setUser(currentUser);
+      } catch (error) {
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUser();
+  }, [location.pathname]);
+
+  useEffect(() => {
+    // PWA Setup
+    const manifest = {
+      short_name: "Yardash",
+      name: "Yardash: Quality Yard Work, On Demand",
+      description: "Yardash connects you with skilled local workers for all your outdoor needs. From mowing to mulching, get it done right.",
+      icons: [
+        { src: '/icon-72x72.png', type: 'image/png', sizes: '72x72' },
+        { src: '/icon-96x96.png', type: 'image/png', sizes: '96x96' },
+        { src: '/icon-128x128.png', type: 'image/png', sizes: '128x128' },
+        { src: '/icon-144x144.png', type: 'image/png', sizes: '144x144' },
+        { src: '/icon-152x152.png', type: 'image/png', sizes: '152x152' },
+        { src: '/icon-192x192.png', type: 'image/png', sizes: '192x192', purpose: 'any maskable' },
+        { src: '/icon-384x384.png', type: 'image/png', sizes: '384x384' },
+        { src: '/icon-512x512.png', type: 'image/png', sizes: '512x512', purpose: 'any maskable' }
+      ],
+      start_url: "/",
+      display: "standalone",
+      scope: "/",
+      theme_color: "#10b981",
+      background_color: "#ffffff"
+    };
+
+    const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+    const manifestUrl = URL.createObjectURL(manifestBlob);
+    const manifestLink = document.createElement('link');
+    manifestLink.rel = 'manifest';
+    manifestLink.href = manifestUrl;
+    document.head.appendChild(manifestLink);
+
+    const themeColorMeta = document.createElement('meta');
+    themeColorMeta.name = 'theme-color';
+    themeColorMeta.content = manifest.theme_color;
+    document.head.appendChild(themeColorMeta);
+    
+    if ('serviceWorker' in navigator) {
+        const swCode = `
+          self.addEventListener('install', () => self.skipWaiting());
+          self.addEventListener('activate', () => self.clients.claim());
+          self.addEventListener('fetch', (e) => {
+            if (e.request.url.startsWith(self.location.origin)) {
+              e.respondWith(fetch(e.request));
+            }
+          });
+        `;
+        
+        const blob = new Blob([swCode], { type: 'application/javascript' });
+        const swUrl = URL.createObjectURL(blob);
+        
+        navigator.serviceWorker.register(swUrl)
+          .then(() => console.log('Service Worker registered'))
+          .catch(() => console.log('Service Worker registration failed'));
+    }
+
+    return () => {
+      if (document.head.contains(manifestLink)) {
+        document.head.removeChild(manifestLink);
+      }
+      if (document.head.contains(themeColorMeta)) {
+        document.head.removeChild(themeColorMeta);
+      }
+      URL.revokeObjectURL(manifestUrl);
+    };
+  }, []);
+
+  const handleSplashComplete = () => {
+    setIsSplashActive(false);
+  };
+
+  const handleLogout = async () => {
+    await User.logout();
+    navigate(createPageUrl('Home'));
+    setUser(null);
+  };
+  
+  const handleSheetLinkClick = () => {
+    setIsSheetOpen(false);
+  }
+
+  if (isSplashActive) {
+    return <SplashScreen onComplete={handleSplashComplete} />;
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 font-sans">
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-200">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <Logo />
+            <NavLinks />
+            <div className="flex items-center gap-4">
+              <InstallButton 
+                installPrompt={installPrompt} 
+                onInstall={handleInstall} 
+                isInstalled={isInstalled}
+              />
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={user.profile_picture_url} alt={user.full_name} />
+                        <AvatarFallback>{user.full_name?.[0].toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <div className="flex justify-between items-center">
+                            <p className="text-sm font-medium leading-none">{user.full_name}</p>
+                            {user.user_type === 'dasher' && user.average_rating > 0 && (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                    <Star className="w-3 h-3 text-yellow-500 fill-yellow-500"/>
+                                    <span>{user.average_rating.toFixed(1)}</span>
+                                </div>
+                            )}
+                        </div>
+                        <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to={createPageUrl('Dashboard')} className="flex items-center">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        <span>Dashboard</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to={createPageUrl('EditProfile')} className="flex items-center">
+                        <UserCircle className="mr-2 h-4 w-4" />
+                        <span>Edit Profile</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    {user.role === 'admin' && (
+                        <>
+                        <DropdownMenuItem asChild>
+                            <Link to={createPageUrl('AdminAnalytics')} className="flex items-center">
+                                <ShieldCheck className="mr-2 h-4 w-4" />
+                                <span>Admin Analytics</span>
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                            <Link to={createPageUrl('GenerateIcons')} className="flex items-center">
+                                <ImageIcon className="mr-2 h-4 w-4" />
+                                <span>App Icon Generator</span>
+                            </Link>
+                        </DropdownMenuItem>
+                        </>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-600 focus:bg-red-50">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Log out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button onClick={() => User.loginWithRedirect(window.location.href)}>Login / Sign Up</Button>
+              )}
+              <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                <SheetTrigger asChild className="md:hidden">
+                  <Button variant="outline" size="icon">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left">
+                    <div className="p-4">
+                        <Logo />
+                        <div className="mt-8">
+                            <NavLinks inSheet onLinkClick={handleSheetLinkClick} />
+                        </div>
+                    </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+          </div>
+        </div>
+      </header>
+      <main>
+        {children}
+      </main>
+      <footer className="bg-white border-t border-gray-200 mt-12">
+        <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center text-gray-500">
+            <Logo />
+            <p className="mt-4 text-sm">Your vision deserves action. Yardash makes it happen.</p>
+            <p className="mt-2 text-xs">&copy; {new Date().getFullYear()} Yardash. All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
   );
 }
