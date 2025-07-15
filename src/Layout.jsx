@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { User } from '@/entities/User';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -63,6 +62,7 @@ export default function Layout({ children }) {
   useEffect(() => {
     const fetchUser = async () => {
       try {
+        const { User } = await import('@/entities/User');
         const currentUser = await User.me();
         setUser(currentUser);
       } catch (error) {
@@ -79,6 +79,7 @@ export default function Layout({ children }) {
   };
 
   const handleLogout = async () => {
+    const { User } = await import('@/entities/User');
     await User.logout();
     navigate(createPageUrl('Home'));
     setUser(null);
