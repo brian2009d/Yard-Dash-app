@@ -52,24 +52,6 @@ const NavLinks = ({ inSheet, onLinkClick }) => {
   );
 };
 
-const InstallButton = ({ installPrompt, onInstall, isInstalled }) => {
-  if (isInstalled || !installPrompt) {
-    return null;
-  }
-
-  return (
-    <Button 
-      onClick={onInstall}
-      variant="outline"
-      size="sm"
-      className="border-green-600 text-green-600 hover:bg-green-50 hover:text-green-700 flex items-center gap-2"
-    >
-      <Download className="w-4 h-4" />
-      <span className="hidden sm:inline">Install App</span>
-    </Button>
-  );
-};
-
 export default function Layout({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -77,41 +59,6 @@ export default function Layout({ children }) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-
-  // PWA Install Logic
-  const [installPrompt, setInstallPrompt] = useState(null);
-  const [isInstalled, setIsInstalled] = useState(false);
-  
-  useEffect(() => {
-    // Check if app is already installed
-    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
-      setIsInstalled(true);
-    }
-
-    // Listen for the install prompt
-    const handleBeforeInstallPrompt = (e) => {
-      e.preventDefault();
-      setInstallPrompt(e);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
-  const handleInstall = () => {
-    if (!installPrompt) return;
-    
-    installPrompt.prompt();
-    installPrompt.userChoice.then((choiceResult) => {
-      if (choiceResult.outcome === 'accepted') {
-        setIsInstalled(true);
-      }
-      setInstallPrompt(null);
-    });
-  };
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -126,71 +73,6 @@ export default function Layout({ children }) {
     };
     fetchUser();
   }, [location.pathname]);
-
-  useEffect(() => {
-    // PWA Setup
-    const manifest = {
-      short_name: "Yardash",
-      name: "Yardash: Quality Yard Work, On Demand",
-      description: "Yardash connects you with skilled local workers for all your outdoor needs. From mowing to mulching, get it done right.",
-      icons: [
-        { src: '/icon-72x72.png', type: 'image/png', sizes: '72x72' },
-        { src: '/icon-96x96.png', type: 'image/png', sizes: '96x96' },
-        { src: '/icon-128x128.png', type: 'image/png', sizes: '128x128' },
-        { src: '/icon-144x144.png', type: 'image/png', sizes: '144x144' },
-        { src: '/icon-152x152.png', type: 'image/png', sizes: '152x152' },
-        { src: '/icon-192x192.png', type: 'image/png', sizes: '192x192', purpose: 'any maskable' },
-        { src: '/icon-384x384.png', type: 'image/png', sizes: '384x384' },
-        { src: '/icon-512x512.png', type: 'image/png', sizes: '512x512', purpose: 'any maskable' }
-      ],
-      start_url: "/",
-      display: "standalone",
-      scope: "/",
-      theme_color: "#10b981",
-      background_color: "#ffffff"
-    };
-
-    const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-    const manifestUrl = URL.createObjectURL(manifestBlob);
-    const manifestLink = document.createElement('link');
-    manifestLink.rel = 'manifest';
-    manifestLink.href = manifestUrl;
-    document.head.appendChild(manifestLink);
-
-    const themeColorMeta = document.createElement('meta');
-    themeColorMeta.name = 'theme-color';
-    themeColorMeta.content = manifest.theme_color;
-    document.head.appendChild(themeColorMeta);
-    
-    if ('serviceWorker' in navigator) {
-        const swCode = `
-          self.addEventListener('install', () => self.skipWaiting());
-          self.addEventListener('activate', () => self.clients.claim());
-          self.addEventListener('fetch', (e) => {
-            if (e.request.url.startsWith(self.location.origin)) {
-              e.respondWith(fetch(e.request));
-            }
-          });
-        `;
-        
-        const blob = new Blob([swCode], { type: 'application/javascript' });
-        const swUrl = URL.createObjectURL(blob);
-        
-        navigator.serviceWorker.register(swUrl)
-          .then(() => {})
-          .catch(() => {});
-    }
-
-    return () => {
-      if (document.head.contains(manifestLink)) {
-        document.head.removeChild(manifestLink);
-      }
-      if (document.head.contains(themeColorMeta)) {
-        document.head.removeChild(themeColorMeta);
-      }
-      URL.revokeObjectURL(manifestUrl);
-    };
-  }, []);
 
   const handleSplashComplete = () => {
     setIsSplashActive(false);
@@ -218,11 +100,6 @@ export default function Layout({ children }) {
             <Logo />
             <NavLinks />
             <div className="flex items-center gap-4">
-              <InstallButton 
-                installPrompt={installPrompt} 
-                onInstall={handleInstall} 
-                isInstalled={isInstalled}
-              />
               {user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
