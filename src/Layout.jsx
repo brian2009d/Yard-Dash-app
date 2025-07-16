@@ -94,7 +94,7 @@ export default function Layout({ children }) {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const { User } = await import('@/entities/User');
+        const { User } = await import('../entities/User.js');
         const currentUser = await User.me();
         setUser(currentUser);
       } catch (error) {
@@ -111,7 +111,7 @@ export default function Layout({ children }) {
   };
 
   const handleLogout = async () => {
-    const { User } = await import('@/entities/User');
+    const { User } = await import('../entities/User.js');
     await User.logout();
     navigate(createPageUrl('Home'));
     setUser(null);
