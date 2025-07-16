@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -143,7 +142,7 @@ export default function Layout({ children }) {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Logo />
-            <NavLinks inSheet={false} onLinkClick={() => {}} />
+            <NavLinks />
             <div className="flex items-center gap-4">
               {!isInstalled && installPrompt && <InstallButton onInstall={handleInstall} />}
               {user ? (
