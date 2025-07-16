@@ -13,7 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Menu, Leaf, Home, Search, PlusCircle, LayoutDashboard, LogOut, UserCircle, MapPin } from 'lucide-react';
+import { Menu, Leaf, Home, Search, PlusCircle, LayoutDashboard, LogOut, UserCircle, MapPin, Shield } from 'lucide-react';
+import { User } from '@/entities/User';
 import SplashScreen from '@/components/ui/SplashScreen';
 
 const Logo = () => (
@@ -23,7 +24,7 @@ const Logo = () => (
   </Link>
 );
 
-const NavLinks = ({ inSheet, onLinkClick }) => {
+const NavLinks = ({ inSheet, onLinkClick, user }) => {
   const links = [
     { name: 'Home', href: createPageUrl('Home'), icon: Home },
     { name: 'About', href: createPageUrl('About'), icon: UserCircle },
@@ -32,6 +33,10 @@ const NavLinks = ({ inSheet, onLinkClick }) => {
     { name: 'Post a Job', href: createPageUrl('PostJob'), icon: PlusCircle },
     { name: 'Dashboard', href: createPageUrl('Dashboard'), icon: LayoutDashboard },
   ];
+
+  if (user && user.role === 'admin') {
+    links.push({ name: 'Admin', href: createPageUrl('AdminAnalytics'), icon: Shield });
+  }
 
   return (
     <nav className={`flex items-center gap-4 ${inSheet ? 'flex-col items-start w-full' : 'hidden md:flex'}`}>
@@ -55,7 +60,7 @@ const NavLinks = ({ inSheet, onLinkClick }) => {
 export default function Layout({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isSplashActive, setIsSplashActive] = useState(true);
+  const [isSplashActive, setIsSplashActive] = useState(false); // Disabled for now
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -63,7 +68,6 @@ export default function Layout({ children }) {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const { User } = await import('./entities/User.js');
         const currentUser = await User.me();
         setUser(currentUser);
       } catch (error) {
@@ -75,12 +79,7 @@ export default function Layout({ children }) {
     fetchUser();
   }, [location.pathname]);
 
-  const handleSplashComplete = () => {
-    setIsSplashActive(false);
-  };
-
   const handleLogout = async () => {
-    const { User } = await import('./entities/User.js');
     await User.logout();
     navigate(createPageUrl('Home'));
     setUser(null);
@@ -88,10 +87,14 @@ export default function Layout({ children }) {
   
   const handleSheetLinkClick = () => {
     setIsSheetOpen(false);
-  }
+  };
 
-  if (isSplashActive) {
-    return <SplashScreen onComplete={handleSplashComplete} />;
+  if (loading) {
+      return (
+          <div className="w-screen h-screen flex items-center justify-center">
+              <p>Loading...</p>
+          </div>
+      )
   }
   
   return (
@@ -100,7 +103,7 @@ export default function Layout({ children }) {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Logo />
-            <NavLinks />
+            <NavLinks user={user} />
             <div className="flex items-center gap-4">
               {user ? (
                 <DropdownMenu>
@@ -121,6 +124,11 @@ export default function Layout({ children }) {
                     <DropdownMenuItem asChild>
                         <Link to={createPageUrl('EditProfile')}>Edit Profile</Link>
                     </DropdownMenuItem>
+                    {user.role === 'admin' && (
+                        <DropdownMenuItem asChild>
+                            <Link to={createPageUrl('AdminAnalytics')}>Admin</Link>
+                        </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout}>
                         <LogOut className="mr-2 h-4 w-4" />
@@ -130,8 +138,7 @@ export default function Layout({ children }) {
                 </DropdownMenu>
               ) : (
                 <Button asChild>
-                  {/* Fixed the login button to point to a generic 'Login' page, assuming it handles both login/signup. */}
-                  <Link to={createPageUrl('Login')}>Login / Sign Up</Link>
+                  <Link to={createPageUrl('ClientSignup')}>Login / Sign Up</Link>
                 </Button>
               )}
               
@@ -145,7 +152,7 @@ export default function Layout({ children }) {
                     <div className="p-4">
                         <Logo />
                         <div className="mt-8">
-                            <NavLinks inSheet onLinkClick={handleSheetLinkClick} />
+                            <NavLinks inSheet user={user} onLinkClick={handleSheetLinkClick} />
                         </div>
                     </div>
                 </SheetContent>
