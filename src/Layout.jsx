@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -12,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Menu, Leaf, Home, Search, PlusCircle, LayoutDashboard, LogOut, UserCircle, MapPin, Star, ShieldCheck, Image as ImageIcon, Download } from 'lucide-react';
+import { Menu, Leaf, Home, Search, PlusCircle, LayoutDashboard, LogOut, UserCircle, MapPin } from 'lucide-react';
 import SplashScreen from '@/components/ui/SplashScreen';
 
 const Logo = () => (
@@ -51,45 +52,13 @@ const NavLinks = ({ inSheet, onLinkClick }) => {
   );
 };
 
-const InstallButton = ({ onInstall }) => (
-    <Button 
-      onClick={onInstall}
-      variant="outline"
-      size="sm"
-      className="hidden sm:flex border-green-600 text-green-600 hover:bg-green-50 hover:text-green-700 items-center gap-2"
-    >
-      <Download className="w-4 h-4" />
-      <span>Install App</span>
-    </Button>
-);
-
 export default function Layout({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isSplashActive, setIsSplashActive] = useState(true);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [installPrompt, setInstallPrompt] = useState(null);
-  const [isInstalled, setIsInstalled] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-
-  useEffect(() => {
-    // PWA Install Logic
-    const handleBeforeInstallPrompt = (e) => {
-        e.preventDefault();
-        setInstallPrompt(e);
-    };
-
-    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
-        setIsInstalled(true);
-    }
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -116,17 +85,6 @@ export default function Layout({ children }) {
     navigate(createPageUrl('Home'));
     setUser(null);
   };
-
-  const handleInstall = () => {
-    if (!installPrompt) return;
-    installPrompt.prompt();
-    installPrompt.userChoice.then((choiceResult) => {
-        if (choiceResult.outcome === 'accepted') {
-            setIsInstalled(true);
-        }
-        setInstallPrompt(null);
-    });
-  };
   
   const handleSheetLinkClick = () => {
     setIsSheetOpen(false);
@@ -144,7 +102,6 @@ export default function Layout({ children }) {
             <Logo />
             <NavLinks />
             <div className="flex items-center gap-4">
-              {!isInstalled && installPrompt && <InstallButton onInstall={handleInstall} />}
               {user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -173,7 +130,8 @@ export default function Layout({ children }) {
                 </DropdownMenu>
               ) : (
                 <Button asChild>
-                  <Link to={createPageUrl('ClientSignup')}>Login / Sign Up</Link>
+                  {/* Fixed the login button to point to a generic 'Login' page, assuming it handles both login/signup. */}
+                  <Link to={createPageUrl('Login')}>Login / Sign Up</Link>
                 </Button>
               )}
               
